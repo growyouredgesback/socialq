@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SocialQ</title>
+<meta name="description" content="Social media scheduling PWA with Google Drive integration">
+<meta name="theme-color" content="#6366f1">
+<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;SocialQ&quot;,&quot;short_name&quot;:&quot;SocialQ&quot;,&quot;start_url&quot;:&quot;/&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#0f172a&quot;,&quot;theme_color&quot;:&quot;#6366f1&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236366f1'/><text y='.9em' font-size='80' x='10'>📱</text></svg>&quot;,&quot;sizes&quot;:&quot;any&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}]}">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.app{max-width:480px;margin:0 auto;padding:0 0 80px}
+header{background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:20px;text-align:center;position:sticky;top:0;z-index:100}
+header h1{font-size:1.5rem;font-weight:700;color:#fff}
+header p{font-size:0.8rem;color:rgba(255,255,255,0.8);margin-top:2px}
+nav{display:flex;background:#1e293b;border-bottom:1px solid #334155;position:sticky;top:73px;z-index:99}
+nav button{flex:1;padding:12px 8px;background:none;border:none;color:#94a3b8;font-size:0.75rem;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s}
+nav button.active{color:#6366f1;border-bottom-color:#6366f1}
+.tab{display:none;padding:16px}
+.tab.active{display:block}
+.card{background:#1e293b;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #334155}
+.card h3{font-size:0.9rem;font-weight:600;color:#e2e8f0;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;transition:all 0.2s}
+.btn-primary{background:#6366f1;color:#fff}.btn-primary:hover{background:#5855eb}
+.btn-secondary{background:#334155;color:#e2e8f0}.btn-secondary:hover{background:#475569}
+.btn-success{background:#10b981;color:#fff}.btn-success:hover{background:#059669}
+.btn-danger{background:#ef4444;color:#fff}
+.btn-sm{padding:6px 12px;font-size:0.75rem}
+.btn-full{width:100%;justify-content:center}
+input,select,textarea{width:100%;padding:10px 12px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:0.85rem;margin-top:6px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#6366f1}
+label{font-size:0.8rem;color:#94a3b8;display:block;margin-top:10px}
+.badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:600}
+.badge-ig{background:rgba(225,48,108,0.2);color:#e1306c}
+.badge-fb{background:rgba(24,119,242,0.2);color:#1877f2}
+.badge-yt{background:rgba(255,0,0,0.2);color:#ff0000}
+.badge-tt{background:rgba(0,0,0,0.4);color:#fff;border:1px solid #333}
+.file-item{background:#0f172a;border-radius:8px;padding:12px;margin-bottom:8px;border:1px solid #1e293b}
+.file-item .name{font-size:0.85rem;font-weight:600;color:#e2e8f0;margin-bottom:6px}
+.file-item .meta{font-size:0.75rem;color:#64748b}
+.platforms{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
+.toggle-switch{position:relative;width:44px;height:24px;cursor:pointer}
+.toggle-switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#334155;border-radius:12px;transition:0.3s}
+.slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:0.3s}
+input:checked+.slider{background:#6366f1}
+input:checked+.slider:before{transform:translateX(20px)}
+.status-bar{background:#0f172a;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:0.8rem;color:#64748b;border-left:3px solid #6366f1}
+.queue-item{background:#0f172a;border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.queue-item .icon{width:40px;height:40px;border-radius:8px;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.queue-item .info{flex:1;min-width:0}
+.queue-item .title{font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.queue-item .sub{font-size:0.75rem;color:#64748b;margin-top:2px}
+.empty{text-align:center;padding:40px 20px;color:#475569}
+.empty .icon{font-size:3rem;margin-bottom:12px}
+.empty p{font-size:0.9rem}
+.time-chip{display:inline-block;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 8px;font-size:0.75rem;color:#94a3b8;margin:2px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#0f172a;border-radius:8px;padding:12px;text-align:center}
+.stat .num{font-size:1.8rem;font-weight:700;color:#6366f1}
+.stat .lbl{font-size:0.75rem;color:#64748b;margin-top:2px}
+.caption-box{background:#0f172a;border-radius:8px;padding:12px;margin-top:8px;font-size:0.8rem;line-height:1.5;color:#cbd5e1;border:1px solid #334155;position:relative}
+.copy-btn{position:absolute;top:8px;right:8px;background:#334155;border:none;color:#94a3b8;border-radius:4px;padding:4px 8px;font-size:0.7rem;cursor:pointer}
+.copy-btn:hover{background:#475569}
+.loading{text-align:center;padding:20px;color:#6366f1;font-size:0.85rem}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid #334155;border-top-color:#6366f1;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.notification{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.85rem;font-weight:600;z-index:1000;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.notification.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<h1>📱 SocialQ</h1>
+<p id="headerStatus">Ready to post</p>
+</header>
+<nav>
+<button class="active" onclick="showTab('drive')">📂 Drive</button>
+<button onclick="showTab('queue')">⏰ Queue</button>
+<button onclick="showTab('captions')">✍️ Captions</button>
+<button onclick="showTab('settings')">⚙️ Settings</button>
+</nav>
+
+<div id="tab-drive" class="tab active">
+<div class="card">
+<h3>🔄 Daily Auto-Scan</h3>
+<div class="toggle">
+<span style="font-size:0.85rem">Auto-scan Drive daily</span>
+<label class="toggle-switch">
+<input type="checkbox" id="autoScanToggle" onchange="toggleAutoScan()">
+<span class="slider"></span>
+</label>
+</div>
+<div id="scanTimeRow" style="display:none">
+<label>Scan time</label>
+<input type="time" id="scanTime" value="09:00" onchange="saveScanTime()">
+</div>
+</div>
+<div class="card">
+<h3>📂 Drive Inbox</h3>
+<div id="driveStatus" class="status-bar">Connect Google Drive in Settings to scan your inbox</div>
+<button class="btn btn-primary btn-full" onclick="scanDrive()">
+<span>🔍</span> Scan Drive Inbox
+</button>
+<div id="driveFiles" style="margin-top:12px"></div>
+</div>
+</div>
+
+<div id="tab-queue" class="tab">
+<div id="queueStats" class="grid-2" style="margin-bottom:12px">
+<div class="stat"><div class="num" id="statQueued">0</div><div class="lbl">Queued</div></div>
+<div class="stat"><div class="num" id="statPosted">0</div><div class="lbl">Posted Today</div></div>
+</div>
+<div id="queueList"></div>
+</div>
+
+<div id="tab-captions" class="tab">
+<div class="card">
+<h3>✍️ Generate Captions</h3>
+<label>Describe your content</label>
+<textarea id="captionPrompt" rows="3" placeholder="E.g. A sunset beach photo with golden hour lighting..."></textarea>
+<label>Platforms</label>
+<div class="platforms" id="captionPlatforms">
+<label style="margin:0"><input type="checkbox" value="instagram" checked> <span class="badge badge-ig">Instagram</span></label>
+<label style="margin:0"><input type="checkbox" value="facebook" checked> <span class="badge badge-fb">Facebook</span></label>
+<label style="margin:0"><input type="checkbox" value="tiktok" checked> <span class="badge badge-tt">TikTok</span></label>
+<label style="margin:0"><input type="checkbox" value="youtube" checked> <span class="badge badge-yt">YouTube</span></label>
+</div>
+<button class="btn btn-primary btn-full" style="margin-top:12px" onclick="generateCaptions()">
+<span>✨</span> Generate with AI
+</button>
+</div>
+<div id="captionResults"></div>
+</div>
+
+<div id="tab-settings" class="tab">
+<div class="card">
+<h3>🔑 API Keys</h3>
+<label>Anthropic API Key</label>
+<input type="password" id="anthropicKey" placeholder="sk-ant-..." onchange="saveSetting('anthropicKey',this.value)">
+<label>Google API Key (Drive)</label>
+<input type="password" id="googleKey" placeholder="AIza..." onchange="saveSetting('googleKey',this.value)">
+<label>Drive Inbox Folder ID</label>
+<input type="text" id="driveFolderId" placeholder="Paste folder ID from Drive URL" onchange="saveSetting('driveFolderId',this.value)">
+<label>Drive Posted Folder ID</label>
+<input type="text" id="drivePostedId" placeholder="Paste posted folder ID" onchange="saveSetting('drivePostedId',this.value)">
+</div>
+<div class="card">
+<h3>🔔 Push Notifications</h3>
+<label>ntfy.sh Topic</label>
+<input type="text" id="ntfyTopic" placeholder="e.g. socialq-myname-2024" onchange="saveSetting('ntfyTopic',this.value)">
+<p style="font-size:0.75rem;color:#64748b;margin-top:6px">Install ntfy app on your phone and subscribe to this topic</p>
+<button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="testNotification()">Test Notification</button>
+</div>
+<div class="card">
+<h3>📱 Meta API</h3>
+<label>Instagram Business Account ID</label>
+<input type="text" id="igAccountId" placeholder="Instagram account ID" onchange="saveSetting('igAccountId',this.value)">
+<label>Facebook Page ID</label>
+<input type="text" id="fbPageId" placeholder="Facebook page ID" onchange="saveSetting('fbPageId',this.value)">
+<label>Meta Access Token</label>
+<input type="password" id="metaToken" placeholder="Long-lived access token" onchange="saveSetting('metaToken',this.value)">
+</div>
+<div class="card">
+<h3>⏱️ Post Timing</h3>
+<p style="font-size:0.8rem;color:#94a3b8;margin-bottom:8px">Smart staggered posting windows:</p>
+<div><span class="time-chip">📷 Instagram: 11am–1pm</span></div>
+<div><span class="time-chip">📘 Facebook: 1pm–3pm</span></div>
+<div><span class="time-chip">▶ YouTube: 2pm–4pm</span></div>
+<div><span class="time-chip">♪ TikTok: 7pm–9pm</span></div>
+<p style="font-size:0.75rem;color:#64748b;margin-top:8px">30-min minimum gap enforced between any two platforms</p>
+</div>
+<div class="card">
+<h3>📦 Data</h3>
+<button class="btn btn-danger btn-sm" onclick="clearData()">Clear All Settings</button>
+</div>
+</div>
+</div>
+
+<div class="notification" id="notification"></div>
+
+<script>
+// ===== State =====
+let queue = JSON.parse(localStorage.getItem('sq_queue') || '[]');
+let settings = JSON.parse(localStorage.getItem('sq_settings') || '{}');
+let postedToday = JSON.parse(localStorage.getItem('sq_posted_today') || '[]');
+
+// ===== Init =====
+function init() {
+  // Load settings into form
+  const fields = ['anthropicKey','googleKey','driveFolderId','drivePostedId','ntfyTopic','igAccountId','fbPageId','metaToken'];
+  fields.forEach(f => { const el = document.getElementById(f); if(el && settings[f]) el.value = settings[f]; });
+  
+  // Auto-scan toggle
+  const toggle = document.getElementById('autoScanToggle');
+  toggle.checked = settings.autoScan || false;
+  document.getElementById('scanTimeRow').style.display = settings.autoScan ? 'block' : 'none';
+  if(settings.scanTime) document.getElementById('scanTime').value = settings.scanTime;
+  
+  // Schedule auto-scan if enabled
+  if(settings.autoScan) scheduleAutoScan();
+  
+  renderQueue();
+  updateStats();
+}
+
+function saveSetting(key, value) {
+  settings[key] = value;
+  localStorage.setItem('sq_settings', JSON.stringify(settings));
+}
+
+function toggleAutoScan() {
+  const on = document.getElementById('autoScanToggle').checked;
+  document.getElementById('scanTimeRow').style.display = on ? 'block' : 'none';
+  saveSetting('autoScan', on);
+  if(on) scheduleAutoScan();
+}
+
+function saveScanTime() {
+  saveSetting('scanTime', document.getElementById('scanTime').value);
+  scheduleAutoScan();
+}
+
+function scheduleAutoScan() {
+  if(!settings.autoScan) return;
+  const [h, m] = (settings.scanTime || '09:00').split(':').map(Number);
+  const now = new Date();
+  const next = new Date();
+  next.setHours(h, m, 0, 0);
+  if(next <= now) next.setDate(next.getDate() + 1);
+  const ms = next - now;
+  clearTimeout(window._scanTimer);
+  window._scanTimer = setTimeout(() => { scanDrive(); scheduleAutoScan(); }, ms);
+  console.log('Auto-scan scheduled in', Math.round(ms/60000), 'minutes');
+}
+
+// ===== Drive =====
+async function scanDrive() {
+  const folderId = settings.driveFolderId;
+  const apiKey = settings.googleKey;
+  if(!folderId || !apiKey) {
+    setDriveStatus('⚠️ Set your Google API Key and Drive Folder ID in Settings first');
+    return;
+  }
+  setDriveStatus('🔍 Scanning Drive inbox...');
+  try {
+    const q = encodeURIComponent(`'${folderId}' in parents and (mimeType contains 'image/' or mimeType contains 'video/') and trashed=false`);
+    const url = `https://www.googleapis.com/drive/v3/files?q=${q}&key=${apiKey}&fields=files(id,name,mimeType,thumbnailLink,createdTime)&orderBy=createdTime desc&pageSize=50`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error.message);
+    const files = data.files || [];
+    if(files.length === 0) {
+      setDriveStatus('✅ No new files in Drive inbox');
+      document.getElementById('driveFiles').innerHTML = '';
+      return;
+    }
+    setDriveStatus(`✅ Found ${files.length} file${files.length>1?'s':''} in Drive inbox`);
+    renderDriveFiles(files);
+  } catch(e) {
+    setDriveStatus('❌ Error: ' + e.message);
+  }
+}
+
+function setDriveStatus(msg) {
+  document.getElementById('driveStatus').textContent = msg;
+}
+
+function renderDriveFiles(files) {
+  const container = document.getElementById('driveFiles');
+  container.innerHTML = files.map((f,i) => `
+    <div class="file-item">
+      <div class="name">🎬 ${f.name}</div>
+      <div class="meta">${f.mimeType.split('/')[0]} • ${new Date(f.createdTime).toLocaleDateString()}</div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="addToQueue('${f.id}','${f.name}','${f.mimeType}')">+ Queue</button>
+        <button class="btn btn-secondary btn-sm" onclick="generateCaptionForFile('${f.name}')">✨ AI Caption</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== Queue =====
+function addToQueue(id, name, mimeType) {
+  const isVideo = mimeType.includes('video');
+  const platforms = isVideo ? ['tiktok','youtube','instagram','facebook'] : ['instagram','facebook'];
+  const scheduledTimes = getSmartTimes(platforms);
+  const item = { id: Date.now(), driveId: id, name, mimeType, platforms, scheduledTimes, status: 'queued', addedAt: new Date().toISOString() };
+  queue.push(item);
+  saveQueue();
+  renderQueue();
+  updateStats();
+  showNotification('✅ Added to queue!');
+  showTab('queue');
+}
+
+function getSmartTimes(platforms) {
+  const windows = { instagram:[11,13], facebook:[13,15], youtube:[14,16], tiktok:[19,21] };
+  const times = {};
+  const used = [];
+  platforms.forEach(p => {
+    const [start, end] = windows[p];
+    let attempt = 0;
+    let t;
+    do {
+      t = start*60 + Math.floor(Math.random()*(end-start)*60);
+      attempt++;
+    } while(used.some(u => Math.abs(u-t)<30) && attempt<20);
+    used.push(t);
+    times[p] = t;
+  });
+  return times;
+}
+
+function formatTime(mins) {
+  const h = Math.floor(mins/60);
+  const m = mins%60;
+  const ap = h>=12?'pm':'am';
+  return `${h>12?h-12:h}:${m.toString().padStart(2,'0')}${ap}`;
+}
+
+function saveQueue() {
+  localStorage.setItem('sq_queue', JSON.stringify(queue));
+}
+
+function renderQueue() {
+  const container = document.getElementById('queueList');
+  if(queue.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="icon">⏰</div><p>No items queued yet.<br>Scan Drive to add content.</p></div>';
+    return;
+  }
+  container.innerHTML = queue.map(item => `
+    <div class="queue-item">
+      <div class="icon">${item.mimeType && item.mimeType.includes('video')?'🎬':'📷'}</div>
+      <div class="info">
+        <div class="title">${item.name}</div>
+        <div class="sub">
+          ${item.platforms.map(p => `<span class="badge badge-${p.substring(0,2)}">${p} ${formatTime(item.scheduledTimes[p])}</span>`).join(' ')}
+        </div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="removeFromQueue(${item.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+function removeFromQueue(id) {
+  queue = queue.filter(i => i.id !== id);
+  saveQueue();
+  renderQueue();
+  updateStats();
+}
+
+function updateStats() {
+  document.getElementById('statQueued').textContent = queue.length;
+  document.getElementById('statPosted').textContent = postedToday.length;
+}
+
+// ===== Captions =====
+async function generateCaptions() {
+  const prompt = document.getElementById('captionPrompt').value.trim();
+  const apiKey = settings.anthropicKey;
+  if(!prompt) { showNotification('⚠️ Enter a content description first'); return; }
+  if(!apiKey) { showNotification('⚠️ Add Anthropic API key in Settings'); return; }
+  
+  const checks = document.querySelectorAll('#captionPlatforms input:checked');
+  const platforms = Array.from(checks).map(c => c.value);
+  if(platforms.length === 0) { showNotification('⚠️ Select at least one platform'); return; }
+  
+  document.getElementById('captionResults').innerHTML = '<div class="loading"><span class="spinner"></span>Generating captions...</div>';
+  
+  try {
+    const platformGuides = {
+      instagram: 'Instagram: engaging, 3-5 relevant hashtags, conversational, emoji-friendly, 150-220 chars',
+      facebook: 'Facebook: warm and community-focused, longer form ok, 1-2 hashtags, encourage engagement',
+      tiktok: 'TikTok: energetic, trending references, 4-6 hashtags including trending ones, hook in first line',
+      youtube: 'YouTube: keyword-rich description, include call-to-action, subscribe reminder, 200-300 chars'
+    };
+    const platformInstructions = platforms.map(p => platformGuides[p]).join('\n');
+    
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-calls': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: `Write platform-native social media captions for the following content. Return ONLY a JSON object with platform names as keys and captions as values. No markdown, no explanation.\n\nContent: ${prompt}\n\nPlatforms and guidelines:\n${platformInstructions}`
+        }]
+      })
+    });
+    const data = await response.json();
+    if(data.error) throw new Error(data.error.message);
+    const text = data.content[0].text;
+    const captions = JSON.parse(text.replace(/```json\n?/g,'').replace(/```/g,'').trim());
+    renderCaptions(captions);
+  } catch(e) {
+    document.getElementById('captionResults').innerHTML = `<div class="card" style="color:#ef4444">❌ Error: ${e.message}</div>`;
+  }
+}
+
+async function generateCaptionForFile(name) {
+  document.getElementById('captionPrompt').value = name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+  showTab('captions');
+  await generateCaptions();
+}
+
+function renderCaptions(captions) {
+  const icons = { instagram:'📷', facebook:'📘', tiktok:'♪', youtube:'▶' };
+  const html = Object.entries(captions).map(([p, text]) => `
+    <div class="card">
+      <h3>${icons[p]||'📝'} ${p.charAt(0).toUpperCase()+p.slice(1)}</h3>
+      <div class="caption-box">
+        ${text}
+        <button class="copy-btn" onclick="copyCaption(this)">Copy</button>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('captionResults').innerHTML = html;
+}
+
+function copyCaption(btn) {
+  const box = btn.parentElement;
+  const text = box.textContent.replace('Copy','').trim();
+  navigator.clipboard.writeText(text).then(() => { btn.textContent = '✓ Copied'; setTimeout(() => btn.textContent = 'Copy', 2000); });
+}
+
+// ===== Notifications =====
+async function testNotification() {
+  const topic = settings.ntfyTopic;
+  if(!topic) { showNotification('⚠️ Set ntfy topic in Settings first'); return; }
+  try {
+    await fetch(`https://ntfy.sh/${topic}`, { method:'POST', body:'🎉 SocialQ test notification works!', headers:{ 'Title':'SocialQ Test', 'Tags':'white_check_mark' } });
+    showNotification('📲 Test notification sent!');
+  } catch(e) { showNotification('❌ Failed: ' + e.message); }
+}
+
+function showNotification(msg) {
+  const el = document.getElementById('notification');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ===== UI =====
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const tabs = ['drive','queue','captions','settings'];
+  document.querySelectorAll('nav button')[tabs.indexOf(name)].classList.add('active');
+}
+
+function clearData() {
+  if(confirm('Clear all settings and queue data?')) {
+    localStorage.clear();
+    location.reload();
+  }
+}
+
+// ===== PWA Service Worker =====
+if('serviceWorker' in navigator) {
+  const sw = `
+    self.addEventListener('install', e => self.skipWaiting());
+    self.addEventListener('activate', e => clients.claim());
+    self.addEventListener('fetch', e => e.respondWith(
+      caches.open('socialq-v1').then(cache =>
+        cache.match(e.request).then(r => r || fetch(e.request).then(res => {
+          cache.put(e.request, res.clone()); return res;
+        }))
+      )
+    ));
+  `;
+  const blob = new Blob([sw], {type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob));
+}
+
+init();
+</script>
+</body>
+</html>
