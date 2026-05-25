@@ -1,0 +1,9 @@
+[build]
+  publish = "."
+
+  [functions]
+    directory = "netlify/functions"
+
+    [[scheduled_functions]]
+      name = "daily-scan"
+        cron = "0 9 * * *"
